@@ -18,7 +18,14 @@ class PrinterIpConfigService {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const config = JSON.parse(stored);
+        // Migrate old IP if it's the wrong one
+        if (config.ip === '192.168.192.168') {
+          console.log('Migrating old printer IP from 192.168.192.168 to 192.168.192.12');
+          this.saveConfig(this.DEFAULT_CONFIG);
+          return this.DEFAULT_CONFIG;
+        }
+        return config;
       }
     } catch (error) {
       console.error('Failed to load printer IP config from localStorage:', error);
