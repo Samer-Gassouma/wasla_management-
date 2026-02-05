@@ -36,36 +36,69 @@ export default function LoginScreen({ onLoggedIn }: Props) {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-gradient-to-b from-gray-50 to-gray-100">
-      <Card className="w-full max-w-sm p-6 space-y-5 shadow-xl">
+    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-gradient-to-br from-primary/5 via-background to-primary/10">
+      <Card className="w-full max-w-md p-8 space-y-6 shadow-2xl border-2 border-primary/10">
         {/* Branding */}
         <div className="flex flex-col items-center select-none">
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4 mb-4">
             {/* Wasla logo */}
-            <img src="icons/logo.png" alt="Wasla" className="w-20 h-20 object-contain -translate-y-1" />
+            <div className="relative">
+              <img src="icons/logo.png" alt="Wasla" className="w-20 h-20 object-contain -translate-y-1 drop-shadow-lg" />
+              <div className="absolute -inset-1 bg-primary/20 rounded-full blur-xl -z-10"></div>
+            </div>
             {/* Backslash accent */}
-            <div className="w-1 h-10 bg-blue-500 -skew-x-12 opacity-60 rounded-full"></div>
+            <div className="w-1 h-12 bg-primary -skew-x-12 opacity-40 rounded-full"></div>
             {/* STE logo (same size) */}
-            <img src="icons/ste.png" alt="STE Dhraiff Services Transport" className="w-20 h-20 object-contain rounded-full bg-white p-1 translate-y-1" />
+            <div className="relative">
+              <img src="icons/ste.png" alt="STE Dhraiff Services Transport" className="w-20 h-20 object-contain rounded-full bg-white p-1 translate-y-1 shadow-lg" />
+              <div className="absolute -inset-1 bg-primary/20 rounded-full blur-xl -z-10"></div>
+            </div>
           </div>
-          <div className="mt-4 text-center">
-            <div className="text-base font-semibold">Wasla</div>
-            <div className="text-xs text-gray-600">STE Dhraiff Services Transport</div>
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Wasla Management
+            </h1>
+            <p className="text-sm text-muted-foreground">STE Dhraiff Services Transport</p>
           </div>
         </div>
 
-        <form className="space-y-3" onSubmit={submit}>
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 font-medium">CIN</label>
-            <Input value={cin} onChange={(e) => setCin(e.target.value)} placeholder="Saisissez votre CIN" />
+        <form className="space-y-4" onSubmit={submit}>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-foreground">Numéro CIN</label>
+            <Input 
+              value={cin} 
+              onChange={(e) => setCin(e.target.value)} 
+              placeholder="Saisissez votre CIN (8 chiffres)"
+              className="h-11 text-base"
+              maxLength={8}
+              autoFocus
+            />
           </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
-          <Button className="w-full" type="submit" disabled={loading || !cin.trim()}>
-            {loading ? "Connexion…" : "Se connecter"}
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+            </div>
+          )}
+          <Button 
+            className="w-full h-11 text-base font-semibold shadow-lg hover:shadow-xl transition-all" 
+            type="submit" 
+            disabled={loading || !cin.trim()}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                Connexion en cours...
+              </span>
+            ) : (
+              "Se connecter"
+            )}
           </Button>
         </form>
-        <div className="text-[11px] text-center text-gray-500">
-          Accès réservé au personnel autorisé.
+        
+        <div className="pt-4 border-t border-border">
+          <p className="text-xs text-center text-muted-foreground">
+            Accès réservé au personnel autorisé uniquement
+          </p>
         </div>
       </Card>
     </div>

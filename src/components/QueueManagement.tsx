@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { 
   listQueueSummaries, 
   listQueue, 
@@ -11,7 +11,9 @@ import {
   getAllDestinations,
   getVehicleDayPass,
   getStaffInfo,
-  listTodayTrips
+  listTodayTrips,
+  clearQueue,
+  clearAllQueues
 } from '@/api/client'
 import { 
   DndContext, 
@@ -31,7 +33,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { printerService, TicketData } from '@/services/printerService'
+import { printerIpConfigService, PrinterIpConfig } from '@/services/printerIpConfigService'
 import PrinterStatusDisplay from './PrinterStatusDisplay'
+
+const STATION_FEE_PER_SEAT = 0.15
 
 type Summary = { 
   destinationId: string
@@ -63,11 +68,11 @@ function DayPassBadge({ entry }: { entry: QueueEntry }) {
   const getBadgeConfig = () => {
     switch (entry.dayPassStatus) {
       case 'no_pass':
-        return { text: 'Pas de pass', className: 'bg-red-100 text-red-800 border-red-200', icon: '❌' }
+        return { text: 'Pas de pass', className: 'bg-red-100 text-red-800 border-red-200' }
       case 'has_pass':
-        return { text: 'Pass actif', className: 'bg-green-100 text-green-800 border-green-200', icon: '✅' }
+        return { text: 'Pass actif', className: 'bg-green-100 text-green-800 border-green-200' }
       case 'recent_pass':
-        return { text: 'Nouveau', className: 'bg-blue-100 text-blue-800 border-blue-200', icon: '🆕' }
+        return { text: 'Nouveau', className: 'bg-blue-100 text-blue-800 border-blue-200' }
       default:
         return null
     }
@@ -78,7 +83,6 @@ function DayPassBadge({ entry }: { entry: QueueEntry }) {
 
   return (
     <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${config.className}`}>
-      <span className="mr-1">{config.icon}</span>
       {config.text}
     </div>
   )
@@ -367,6 +371,58 @@ export default function QueueManagement() {
   const [printingDayPassVehicleIds, setPrintingDayPassVehicleIds] = useState<Set<string>>(new Set())
   const dayPassPrinterTimeoutRef = useRef<NodeJS.Timeout>()
 
+  // Manual client ticket printer state
+  const [ticketPrinterModalOpen, setTicketPrinterModalOpen] = useState(false)
+  const [ticketDestinationId, setTicketDestinationId] = useState('')
+  const [ticketSeatCount, setTicketSeatCount] = useState(1)
+  const [ticketPrinting, setTicketPrinting] = useState(false)
+  const [ticketError, setTicketError] = useState<string | null>(null)
+  const [ticketPrinterConfig, setTicketPrinterConfig] = useState<PrinterIpConfig | null>(null)
+  const selectedTicketDestination = ticketDestinationId
+    ? summaries.find((s) => s.destinationId === ticketDestinationId) || null
+    : null
+  const ticketSeatCountSafe = Math.max(1, ticketSeatCount || 1)
+  const ticketBasePrice = selectedTicketDestination?.basePrice || 0
+  const ticketBaseTotal = ticketBasePrice * ticketSeatCountSafe
+  const ticketStationFeeTotal = STATION_FEE_PER_SEAT * ticketSeatCountSafe
+  const ticketGrandTotal = ticketBaseTotal + ticketStationFeeTotal
+  const ticketPreview = useMemo(() => {
+    if (!selectedTicketDestination) {
+      return 'Sélectionnez une destination pour voir un aperçu du ticket.'
+    }
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('fr-FR')
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    const destName = selectedTicketDestination.destinationName
+    const basePricePerSeat = ticketBasePrice
+    const stationFeePerSeat = STATION_FEE_PER_SEAT
+
+    const lines = [
+      '================================',
+      '  STE DHRAIFF SERVICES',
+      '     TRANSPORT',
+      '================================',
+      '',
+      '      BILLET CLIENT',
+      '--------------------------------',
+      `Destination: ${destName}`,
+      `Nombre de sièges: ${ticketSeatCountSafe}`,
+      `Prix par siège: ${basePricePerSeat.toFixed(2)} TND`,
+      `Total billets: ${ticketBaseTotal.toFixed(2)} TND`,
+      `Frais station (${stationFeePerSeat.toFixed(3)} TND x ${ticketSeatCountSafe})`,
+      `Total frais: ${ticketStationFeeTotal.toFixed(3)} TND`,
+      '--------------------------------',
+      `Montant TTC: ${ticketGrandTotal.toFixed(3)} TND`,
+      `Date: ${dateStr} ${timeStr}`,
+      'Agent: __________',
+      '',
+      'Bon voyage !',
+      '',
+      ''
+    ]
+    return lines.join('\n')
+  }, [selectedTicketDestination, ticketSeatCountSafe, ticketBasePrice, ticketBaseTotal, ticketStationFeeTotal, ticketGrandTotal])
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -518,6 +574,40 @@ export default function QueueManagement() {
     }
   }
 
+  const handleClearQueue = async (destinationId: string, destinationName: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir vider la file d'attente pour ${destinationName} ?`)) return
+    
+    try {
+      await clearQueue(destinationId)
+      showNotification(`File d'attente pour ${destinationName} vidée avec succès`, 'success')
+      await loadSummaries()
+      if (selected?.destinationId === destinationId) {
+        await loadQueue()
+        setSelected(null)
+      }
+    } catch (error) {
+      console.error('Failed to clear queue:', error)
+      showNotification('Erreur lors du vidage de la file', 'error')
+    }
+  }
+
+  const handleClearAllQueues = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir vider toutes les files d\'attente ? Cette action est irréversible.')) return
+    
+    try {
+      await clearAllQueues()
+      showNotification('Toutes les files d\'attente ont été vidées avec succès', 'success')
+      await loadSummaries()
+      if (selected) {
+        await loadQueue()
+        setSelected(null)
+      }
+    } catch (error) {
+      console.error('Failed to clear all queues:', error)
+      showNotification('Erreur lors du vidage des files', 'error')
+    }
+  }
+
   const handleChangeDestination = async (entry: QueueEntry) => {
     console.log('Opening change destination for entry:', entry)
     setChangeDestFromEntry(entry)
@@ -556,11 +646,11 @@ export default function QueueManagement() {
       setAuthorizedStations([])
       await loadQueue()
       await loadSummaries()
-      showNotification('✅ Destination changée avec succès', 'success')
+      showNotification('Destination changée avec succès', 'success')
     } catch (error) {
       console.error('Failed to change destination:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur changement destination: ${errorMsg}`, 'error')
+      showNotification(`Erreur changement destination: ${errorMsg}`, 'error')
     }
   }
 
@@ -618,6 +708,72 @@ export default function QueueManagement() {
     // Keep the query and searching state - let the user keep typing
   }
 
+  const resetTicketPrinterForm = () => {
+    setTicketDestinationId('')
+    setTicketSeatCount(1)
+    setTicketError(null)
+    setTicketPrinting(false)
+    setTicketPrinterConfig(null)
+  }
+
+  useEffect(() => {
+    if (ticketPrinterModalOpen) {
+      try {
+        const config = printerIpConfigService.getConfig()
+        setTicketPrinterConfig(config)
+      } catch (error) {
+        console.error('Failed to load printer config for ticket preview:', error)
+        setTicketPrinterConfig(null)
+      }
+    }
+  }, [ticketPrinterModalOpen])
+
+  const handleManualTicketPrint = async () => {
+    if (!ticketDestinationId) {
+      setTicketError('Sélectionnez une destination')
+      return
+    }
+
+    setTicketError(null)
+    setTicketPrinting(true)
+
+    try {
+      const destinationSummary = summaries.find((s) => s.destinationId === ticketDestinationId)
+      if (!destinationSummary) {
+        throw new Error('Destination introuvable')
+      }
+
+      const staffInfo = getStaffInfo()
+      const staffName = staffInfo ? `${staffInfo.firstName} ${staffInfo.lastName}` : 'Agent'
+
+      const ticketData: TicketData = {
+        licensePlate: '',
+        destinationName: destinationSummary.destinationName,
+        seatNumber: ticketSeatCountSafe,
+        totalAmount: Number(ticketGrandTotal.toFixed(3)),
+        stationFee: STATION_FEE_PER_SEAT,
+        basePrice: destinationSummary.basePrice,
+        createdBy: staffName,
+        createdAt: new Date().toISOString(),
+        stationName: 'Station',
+        routeName: destinationSummary.destinationName,
+        staffFirstName: staffInfo?.firstName || '',
+        staffLastName: staffInfo?.lastName || '',
+      }
+
+      await printerService.printBookingTicket(ticketData)
+      showNotification(`Ticket imprimé pour ${destinationSummary.destinationName}`, 'success')
+      setTicketPrinterModalOpen(false)
+      resetTicketPrinterForm()
+    } catch (error) {
+      console.error('Failed to print booking ticket:', error)
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      showNotification(`Erreur impression ticket: ${errorMsg}`, 'error')
+    } finally {
+      setTicketPrinting(false)
+    }
+  }
+
   const handleAddVehicle = async () => {
     if (!selectedVehicle || !selectedDestination) return
     
@@ -661,14 +817,14 @@ export default function QueueManagement() {
         
         try {
           await printerService.printDayPassTicket(ticketData)
-          showNotification('✅ Véhicule ajouté avec pass journalier imprimé', 'success')
+          showNotification('Véhicule ajouté avec pass journalier imprimé', 'success')
         } catch (printError) {
           console.error('Print error:', printError)
           const errorMsg = printError instanceof Error ? printError.message : String(printError)
-          showNotification(`❌ Erreur impression: ${errorMsg}`, 'error')
+          showNotification(`Erreur impression: ${errorMsg}`, 'error')
         }
       } else {
-        showNotification('✅ Véhicule ajouté avec succès!', 'success')
+        showNotification('Véhicule ajouté avec succès!', 'success')
       }
       
       // Refresh everything
@@ -694,7 +850,7 @@ export default function QueueManagement() {
     } catch (error) {
       console.error('Failed to add vehicle:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur ajout véhicule: ${errorMsg}`, 'error')
+      showNotification(`Erreur ajout véhicule: ${errorMsg}`, 'error')
     }
   }
 
@@ -861,7 +1017,7 @@ export default function QueueManagement() {
       // Print the exit pass ticket
       await printerService.printExitPassTicket(exitPassTicketData)
       
-      showNotification(`✅ Laissez-passer imprimé: ${trip.licensePlate}`, 'success')
+      showNotification(`Laissez-passer imprimé: ${trip.licensePlate}`, 'success')
       
       // Close modal after successful print
       setExitPassModalOpen(false)
@@ -869,7 +1025,7 @@ export default function QueueManagement() {
     } catch (error) {
       console.error('Failed to print exit pass for trip:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur impression laissez-passer: ${errorMsg}`, 'error')
+      showNotification(`Erreur impression laissez-passer: ${errorMsg}`, 'error')
     } finally {
       // Remove from printing set
       setPrintingTripIds(prev => {
@@ -967,7 +1123,7 @@ export default function QueueManagement() {
       // Print the day pass ticket
       await printerService.printDayPassTicket(ticketData)
       
-      showNotification(`✅ Pass journalier imprimé: ${vehicleWithDayPass.licensePlate}`, 'success')
+      showNotification(`Pass journalier imprimé: ${vehicleWithDayPass.licensePlate}`, 'success')
       
       // Close modal after successful print
       setDayPassPrinterModalOpen(false)
@@ -975,7 +1131,7 @@ export default function QueueManagement() {
     } catch (error) {
       console.error('Failed to print day pass:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur impression pass journalier: ${errorMsg}`, 'error')
+      showNotification(`Erreur impression pass journalier: ${errorMsg}`, 'error')
     } finally {
       // Remove from printing set
       setPrintingDayPassVehicleIds(prev => {
@@ -997,7 +1153,6 @@ export default function QueueManagement() {
           style={{ animation: 'slideIn 0.3s ease-out' }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-lg flex-shrink-0">{notification.type === 'success' ? '✅' : '❌'}</span>
             <span className="font-medium break-words">{notification.message}</span>
           </div>
         </div>
@@ -1033,7 +1188,7 @@ export default function QueueManagement() {
           className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-sm"
           title="Actualiser toutes les données"
         >
-          🔄 Actualiser
+          Actualiser
         </button>
         <button
           onClick={() => {
@@ -1047,7 +1202,7 @@ export default function QueueManagement() {
           className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors text-sm"
           title="Vérifier le statut du passe journal"
         >
-          🎫 Vérifier Passe Jour
+          Vérifier Passe Jour
         </button>
         <button
           onClick={async () => {
@@ -1066,7 +1221,7 @@ export default function QueueManagement() {
           className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors text-sm"
           title="Imprimer laissez-passer sortie"
         >
-          🚪 Imprimer Sortie
+          Imprimer Sortie
         </button>
         <button
           onClick={() => {
@@ -1077,7 +1232,19 @@ export default function QueueManagement() {
           className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors text-sm"
           title="Imprimer pass journalier"
         >
-          🎫 Imprimer Passe Jour
+          Imprimer Passe Jour
+        </button>
+        <button
+          onClick={async () => {
+            if (!summaries.length) {
+              await loadSummaries()
+            }
+            setTicketPrinterModalOpen(true)
+          }}
+          className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600 transition-colors text-sm"
+          title="Imprimer un ticket client"
+        >
+          Imprimer Ticket Client
         </button>
       </div>
 
@@ -1174,7 +1341,7 @@ export default function QueueManagement() {
                       : 'bg-green-500 text-white hover:bg-green-600'
                   }`}
                 >
-                  {addingVehicle ? '⏳ Ajout en cours...' : '✅ Ajouter à la File'}
+                  {addingVehicle ? 'Ajout en cours...' : 'Ajouter à la File'}
                 </button>
               </div>
             )}
@@ -1190,6 +1357,14 @@ export default function QueueManagement() {
       </div>
 
       {/* Destination summaries */}
+      <div className="mb-3">
+        <button
+          onClick={handleClearAllQueues}
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm font-medium"
+        >
+          Vider toutes les files
+        </button>
+      </div>
       <div className="grid grid-cols-4 gap-3">
         {summaries.map((summary) => (
           <div
@@ -1219,16 +1394,25 @@ export default function QueueManagement() {
             <h3 className="text-lg font-medium">
               File d'attente: {selected.destinationName}
             </h3>
-            <button
-              onClick={async () => {
-                await loadQueue()
-                await loadSummaries()
-              }}
-              className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-sm"
-              title="Actualiser les données"
-            >
-              🔄 Actualiser
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  await loadQueue()
+                  await loadSummaries()
+                }}
+                className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-sm"
+                title="Actualiser les données"
+              >
+                Actualiser
+              </button>
+              <button
+                onClick={() => handleClearQueue(selected.destinationId, selected.destinationName)}
+                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                title={`Vider la file pour ${selected.destinationName}`}
+              >
+                Vider la file
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -1392,7 +1576,7 @@ export default function QueueManagement() {
                   <div className="mb-4 p-3 rounded-lg border-2">
                     {dayPassStatus.status === 'paid' && (
                       <div className="bg-green-50 border-green-500">
-                        <div className="font-semibold text-green-700 mb-2">✅ Passe Jour ACTIF</div>
+                        <div className="font-semibold text-green-700 mb-2">Passe Jour ACTIF</div>
                         <div className="text-sm text-gray-700">
                           <p>Ce véhicule a un passe journal valide.</p>
                           {dayPassStatus.details && (
@@ -1413,7 +1597,7 @@ export default function QueueManagement() {
                     )}
                     {dayPassStatus.status === 'no_pass' && (
                       <div className="bg-gray-50 border-gray-500">
-                        <div className="font-semibold text-gray-700 mb-2">❌ Aucun passe journal</div>
+                        <div className="font-semibold text-gray-700 mb-2">Aucun passe journal</div>
                         <div className="text-sm text-gray-700">
                           <p>Ce véhicule n'a pas de passe journal actif pour aujourd'hui.</p>
                         </div>
@@ -1444,6 +1628,132 @@ export default function QueueManagement() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Ticket Printer modal */}
+      {ticketPrinterModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl mx-4">
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Imprimer Ticket Client</h2>
+                <button
+                  onClick={() => {
+                    setTicketPrinterModalOpen(false)
+                    resetTicketPrinterForm()
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Destination</label>
+                <select
+                  value={ticketDestinationId}
+                  onChange={(e) => setTicketDestinationId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Sélectionner une destination...</option>
+                  {summaries.map((destination) => (
+                    <option key={destination.destinationId} value={destination.destinationId}>
+                      {destination.destinationName} ({destination.basePrice.toFixed(2)} TND)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de sièges</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={ticketSeatCount}
+                  onChange={(e) => {
+                    const parsed = parseInt(e.target.value, 10)
+                    setTicketSeatCount(Number.isNaN(parsed) ? 1 : Math.max(1, parsed))
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="p-3 rounded-lg border bg-white/70">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-gray-700">Imprimante configurée</span>
+                  {ticketPrinterConfig ? (
+                    <span className="text-gray-600">
+                      {ticketPrinterConfig.ip}:{ticketPrinterConfig.port}
+                    </span>
+                  ) : (
+                    <span className="text-red-500">Non configurée</span>
+                  )}
+                </div>
+                {!ticketPrinterConfig && (
+                  <p className="mt-2 text-xs text-red-500">
+                    Configurez l&apos;imprimante dans l&apos;onglet statut avant d&apos;imprimer.
+                  </p>
+                )}
+              </div>
+
+              {selectedTicketDestination && (
+                <div className="p-4 bg-gray-50 rounded-lg border space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Destination</span>
+                    <span className="font-medium">{selectedTicketDestination.destinationName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Prix par siège</span>
+                    <span className="font-medium">{ticketBasePrice.toFixed(2)} TND</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total billets ({ticketSeatCountSafe} sièges)</span>
+                    <span className="font-medium">{ticketBaseTotal.toFixed(2)} TND</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Frais station ({STATION_FEE_PER_SEAT.toFixed(3)} TND x {ticketSeatCountSafe})</span>
+                    <span className="font-medium">{ticketStationFeeTotal.toFixed(3)} TND</span>
+                  </div>
+                  <div className="flex justify-between text-base font-semibold border-t pt-2">
+                    <span>Montant TTC</span>
+                    <span>{ticketGrandTotal.toFixed(3)} TND</span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Aperçu du ticket</label>
+                <pre className="bg-gray-900 text-green-200 text-xs rounded-lg p-4 overflow-auto max-h-72 whitespace-pre-wrap">{ticketPreview}</pre>
+              </div>
+
+              {ticketError && <div className="text-sm text-red-600">{ticketError}</div>}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setTicketPrinterModalOpen(false)
+                    resetTicketPrinterForm()
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleManualTicketPrint}
+                  disabled={ticketPrinting || !ticketDestinationId}
+                  className={`px-4 py-2 rounded-md text-white transition-colors ${
+                    ticketPrinting || !ticketDestinationId
+                      ? 'bg-teal-300 cursor-not-allowed'
+                      : 'bg-teal-500 hover:bg-teal-600'
+                  }`}
+                >
+                  {ticketPrinting ? 'Impression...' : 'Imprimer'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1506,7 +1816,7 @@ export default function QueueManagement() {
                           <div>
                             <div className="font-medium flex items-center gap-2">
                               {trip.licensePlate}
-                              {isPrinting && <span className="text-orange-500 animate-pulse">⏳ Impression...</span>}
+                              {isPrinting && <span className="text-orange-500 animate-pulse">Impression...</span>}
                             </div>
                             <div className="text-sm text-gray-600">{trip.destinationName}</div>
                           </div>
@@ -1611,7 +1921,7 @@ export default function QueueManagement() {
                           <div>
                             <div className="font-medium flex items-center gap-2">
                               {vehicleWithDayPass.licensePlate}
-                              {isPrinting && <span className="text-indigo-500 animate-pulse">⏳ Impression...</span>}
+                              {isPrinting && <span className="text-indigo-500 animate-pulse">Impression...</span>}
                             </div>
                             <div className="text-sm text-gray-600">Pass journalier actif</div>
                           </div>

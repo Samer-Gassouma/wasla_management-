@@ -162,7 +162,7 @@ export default function PrinterStatusDisplay() {
         </span>
         {status.error && (
           <span className="text-xs text-red-500" title={status.error}>
-            ⚠️
+            !
           </span>
         )}
         <span className="text-xs text-gray-500">IP: {currentIp}</span>
@@ -171,7 +171,7 @@ export default function PrinterStatusDisplay() {
           className="text-xs text-blue-600 hover:text-blue-800 underline"
           title="Configuration de l'IP de l'imprimante (F3)"
         >
-          ⚙️ IP Imprimante
+          IP Imprimante
         </button>
       </div>
 

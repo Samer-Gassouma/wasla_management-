@@ -9,7 +9,8 @@
   },
   "files": [
     "dist",
-    "dist-electron"
+    "dist-electron",
+    "public/icons/**/*"
   ],
   "icon": "public/icons/icon-256x256.png",
  
@@ -26,6 +27,26 @@
     ],
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
   },
+  "linux": {
+    "icon": "public/icons/icon-256x256.png",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "deb",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "category": "Utility",
+    "maintainer": "STE Dhraiff Services Transport <info@wasla.tn>",
+    "artifactName": "${productName}-Linux-${version}.${ext}"
+  },
   "nsis": {
     "oneClick": false,
     "perMachine": false,
@@ -36,5 +57,13 @@
     "createStartMenuShortcut": true,
     "shortcutName": "Wasla Management"
   },
-  "publish": null
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "N3on404",
+      "repo": "wasla_management-",
+      "releaseType": "release",
+      "private": false
+    }
+  ]
 }

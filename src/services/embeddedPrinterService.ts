@@ -19,6 +19,7 @@ interface TicketData {
   routeName?: string;
   seatNumber: number;
   totalAmount: number;
+  stationFee?: number;
   createdBy: string;
   createdAt: Date;
   stationName?: string;
@@ -68,7 +69,7 @@ export class EmbeddedPrinterService {
 
         this.server.listen(this.port, () => {
           this.isRunning = true;
-          console.log(`[Printer Service] Started on http://localhost:${this.port}`);
+          console.log(`[Printer Service] Started on http://192.168.0.193:${this.port}`);
           resolve();
         });
 
@@ -168,6 +169,15 @@ export class EmbeddedPrinterService {
     }
 
     // Print endpoints
+    if (url.pathname === '/api/printer/print/booking' && req.method === 'POST') {
+      const body = await this.readBody(req);
+      const ticketData = JSON.parse(body) as TicketData;
+      await this.printTicket(ticketData, 'booking');
+      res.writeHead(200);
+      res.end(JSON.stringify({ message: 'booking ticket printed successfully' }));
+      return;
+    }
+
     if (url.pathname === '/api/printer/print/daypass' && req.method === 'POST') {
       const body = await this.readBody(req);
       const ticketData = JSON.parse(body) as TicketData;
@@ -183,6 +193,15 @@ export class EmbeddedPrinterService {
       await this.printTicket(ticketData, 'exitpass');
       res.writeHead(200);
       res.end(JSON.stringify({ message: 'exit pass ticket printed successfully' }));
+      return;
+    }
+
+    if (url.pathname === '/api/printer/print/statistics' && req.method === 'POST') {
+      const body = await this.readBody(req);
+      const reportData = JSON.parse(body);
+      await this.printStatisticsReport(reportData);
+      res.writeHead(200);
+      res.end(JSON.stringify({ message: 'statistics report printed successfully' }));
       return;
     }
 
@@ -277,6 +296,7 @@ export class EmbeddedPrinterService {
     const now = new Date(data.createdAt);
     const dateStr = now.toLocaleDateString('fr-FR');
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const seatCount = Math.max(1, data.seatNumber || 1);
 
     // Header
     lines.push('================================');
@@ -326,7 +346,30 @@ export class EmbeddedPrinterService {
       lines.push(`Date: ${dateStr} ${timeStr}`);
       lines.push(`Agent: ${data.createdBy}`);
       lines.push('--------------------------------');
-      lines.push('🚪 Sortie autorisée!');
+      lines.push('Sortie autorisée!');
+    } else if (type === 'booking') {
+      const stationFeePerSeat = typeof data.stationFee === 'number' ? data.stationFee : 0.15;
+      const basePricePerSeat = typeof data.basePrice === 'number' ? data.basePrice : 0;
+      const baseTotal = basePricePerSeat * seatCount;
+      const stationFeeTotal = stationFeePerSeat * seatCount;
+      const totalAmount = data.totalAmount || (baseTotal + stationFeeTotal);
+
+      lines.push('');
+      lines.push('      BILLET CLIENT');
+      lines.push('--------------------------------');
+      if (data.destinationName) {
+        lines.push(`Destination: ${data.destinationName}`);
+      }
+      lines.push(`Nombre de sièges: ${seatCount}`);
+      lines.push(`Prix par siège: ${basePricePerSeat.toFixed(2)} TND`);
+      lines.push(`Total billets: ${baseTotal.toFixed(2)} TND`);
+      lines.push(`Frais station (${stationFeePerSeat.toFixed(3)} TND x ${seatCount})`);
+      lines.push(`Total frais: ${stationFeeTotal.toFixed(3)} TND`);
+      lines.push('--------------------------------');
+      lines.push(`Montant TTC: ${totalAmount.toFixed(3)} TND`);
+      lines.push(`Date: ${dateStr} ${timeStr}`);
+      lines.push(`Agent: ${data.createdBy}`);
+      lines.push('Bon voyage !');
     }
 
     if (data.staffFirstName && data.staffLastName) {
@@ -335,6 +378,89 @@ export class EmbeddedPrinterService {
 
     lines.push('');
     lines.push('');
+    lines.push('');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Print statistics report
+   */
+  private async printStatisticsReport(reportData: any): Promise<void> {
+    const config = reportData.printerConfig || this.getDefaultConfig();
+    
+    // Generate statistics content
+    const content = this.generateStatisticsContent(reportData);
+    
+    // Convert to ESC/POS commands
+    const escPosData = this.convertToESCPOS(content);
+    
+    // Send to printer
+    await this.sendToPrinter(config.ip, config.port, escPosData);
+  }
+
+  /**
+   * Generate statistics report content for thermal printer
+   */
+  private generateStatisticsContent(data: any): string {
+    const lines: string[] = [];
+    const now = new Date(data.createdAt || new Date());
+    const dateStr = now.toLocaleDateString('fr-FR');
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    // Header
+    lines.push('================================');
+    lines.push('  STE DHRAIFF SERVICES');
+    lines.push('     TRANSPORT');
+    lines.push('================================');
+    lines.push('');
+    lines.push('   RAPPORT DE REVENUS');
+    lines.push('--------------------------------');
+    lines.push(`Periode: ${data.periodLabel}`);
+    lines.push(`Date: ${dateStr} ${timeStr}`);
+    if (data.createdBy) {
+      lines.push(`Agent: ${data.createdBy}`);
+    }
+    lines.push('--------------------------------');
+    lines.push('');
+    
+    // Summary section
+    lines.push('RESUME DES REVENUS');
+    lines.push('--------------------------------');
+    lines.push(`Total Sieges: ${data.totalSeatsBooked}`);
+    lines.push(`Revenus Sieges: ${Number(data.totalSeatIncome).toFixed(3)} TND`);
+    lines.push(`Passes Jour: ${data.totalDayPassesSold}`);
+    lines.push(`Revenus Passes: ${Number(data.totalDayPassIncome).toFixed(3)} TND`);
+    lines.push('--------------------------------');
+    lines.push(`REVENUS TOTAUX: ${Number(data.totalIncome).toFixed(3)} TND`);
+    lines.push('--------------------------------');
+    lines.push('');
+
+    // Staff performance table
+    if (data.staffData && data.staffData.length > 0) {
+      lines.push('PERFORMANCE DU PERSONNEL');
+      lines.push('--------------------------------');
+      lines.push('Personnel | Sieges | Rev.Sieges | Passes | Rev.Passes | Total');
+      lines.push('--------------------------------');
+      
+      data.staffData.forEach((staff: any) => {
+        const name = (staff.name || '').substring(0, 10).padEnd(10);
+        const seats = String(staff.seats || 0).padStart(6);
+        const seatIncome = Number(staff.seatIncome || 0).toFixed(2).padStart(10);
+        const passes = String(staff.dayPasses || 0).padStart(6);
+        const passIncome = Number(staff.dayPassIncome || 0).toFixed(2).padStart(10);
+        const total = Number(staff.income || 0).toFixed(2).padStart(10);
+        lines.push(`${name} | ${seats} | ${seatIncome} | ${passes} | ${passIncome} | ${total}`);
+      });
+      
+      lines.push('--------------------------------');
+      lines.push(`TOTAL     | ${String(data.totalSeatsBooked).padStart(6)} | ${Number(data.totalSeatIncome).toFixed(2).padStart(10)} | ${String(data.totalDayPassesSold).padStart(6)} | ${Number(data.totalDayPassIncome).toFixed(2).padStart(10)} | ${Number(data.totalIncome).toFixed(2).padStart(10)}`);
+      lines.push('--------------------------------');
+      lines.push('');
+    }
+
+    lines.push('Document genere automatiquement');
+    lines.push('par le systeme de gestion');
     lines.push('');
 
     return lines.join('\n');

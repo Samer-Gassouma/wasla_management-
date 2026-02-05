@@ -94,6 +94,14 @@ export async function deleteQueueEntry(destinationId: string, entryId: string) {
   return request<{ data: any }>(API.queue, `/api/v1/queue/${destinationId}/entry/${entryId}`, "DELETE");
 }
 
+export async function clearQueue(destinationId: string) {
+  return request<{ data: any }>(API.queue, `/api/v1/queue/${destinationId}/clear`, "DELETE");
+}
+
+export async function clearAllQueues() {
+  return request<{ data: any }>(API.queue, `/api/v1/queue/clear-all`, "DELETE");
+}
+
 export async function changeDestination(destinationId: string, entryId: string, newDestinationId: string, newDestinationName: string) {
   return request<{ data: any }>(API.queue, `/api/v1/queue/${destinationId}/entry/${entryId}/change-destination`, "PUT", {
     newDestinationId,
@@ -180,6 +188,11 @@ export async function getActualIncome(dateISO?: string) {
   return request<{ data: any }>(API.statistics, `/api/v1/statistics/income/actual${q}`);
 }
 
+// Get actual income for a specific month
+export async function getActualIncomeForMonth(year: number, month: number) {
+  return request<{ data: any }>(API.statistics, `/api/v1/statistics/income/month?year=${year}&month=${month}`);
+}
+
 // Get destination routes for income calculation
 export async function getDestinationRoutes() {
   return request<{ data: Array<any> }>(API.queue, `/api/v1/routes`);
@@ -190,7 +203,7 @@ export async function getAllDestinations() {
   return request<{ data: Array<{ id: string; name: string; basePrice: number; isActive: boolean }> }>(API.queue, "/api/v1/destinations");
 }
 
-// Staff CRUD (Go auth service on localhost:8001)
+// Staff CRUD (Go auth service on 192.168.0.193:8001)
 export async function listStaff() {
   return request<{ data: Array<any> }>(API.auth, "/api/v1/staff/");
 }

@@ -20,6 +20,7 @@ export interface TicketData {
   destinationName: string;
   seatNumber: number;
   totalAmount: number;
+  stationFee?: number;
   createdBy: string;
   createdAt: string;
   stationName: string;
@@ -38,6 +39,26 @@ export interface TicketData {
   // Staff information
   staffFirstName?: string;
   staffLastName?: string;
+}
+
+// Statistics report data interface
+export interface StatisticsReportData {
+  periodLabel: string;
+  totalSeatsBooked: number;
+  totalSeatIncome: number;
+  totalDayPassesSold: number;
+  totalDayPassIncome: number;
+  totalIncome: number;
+  staffData?: Array<{
+    name: string;
+    seats: number;
+    seatIncome: number;
+    dayPasses: number;
+    dayPassIncome: number;
+    income: number;
+  }>;
+  createdBy?: string;
+  createdAt?: string;
 }
 
 // Printer service class
@@ -68,6 +89,25 @@ export class PrinterService {
       companyName: data.companyName || data.brandName || this.defaultBrandName,
       companyLogo: data.companyLogo || data.brandLogo || this.defaultBrandLogoPath,
     };
+  }
+
+  // Print booking ticket using local printer configuration
+  async printBookingTicket(ticketData: TicketData): Promise<void> {
+    const printerConfig = await this.getPrinterConfig();
+    
+    const response = await fetch(`${this.baseUrl}/api/printer/print/booking`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...this.withBranding(ticketData),
+        printerConfig: printerConfig
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to print booking ticket: ${response.statusText}`);
+    }
   }
 
   // Print day pass ticket using local printer configuration
@@ -105,6 +145,25 @@ export class PrinterService {
     });
     if (!response.ok) {
       throw new Error(`Failed to print exit pass ticket: ${response.statusText}`);
+    }
+  }
+
+  // Print statistics report using local printer configuration
+  async printStatisticsReport(reportData: StatisticsReportData): Promise<void> {
+    const printerConfig = await this.getPrinterConfig();
+    
+    const response = await fetch(`${this.baseUrl}/api/printer/print/statistics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...reportData,
+        printerConfig: printerConfig
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to print statistics report: ${response.statusText}`);
     }
   }
 

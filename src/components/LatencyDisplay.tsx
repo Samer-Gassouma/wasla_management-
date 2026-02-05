@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wifi, WifiOff, Clock } from 'lucide-react';
 
 interface LatencyDisplayProps {
   connected: boolean;
@@ -40,18 +39,17 @@ export default function LatencyDisplay({ connected, latency, compact = false }: 
   };
 
   const getConnectionStatus = () => {
-    if (!connected) return { text: 'Déconnecté', color: 'text-red-600', icon: WifiOff };
-    if (latency === undefined) return { text: 'Connexion…', color: 'text-yellow-600', icon: Clock };
-    return { text: 'Connecté', color: 'text-green-600', icon: Wifi };
+    if (!connected) return { text: 'Déconnecté', color: 'text-red-600' };
+    if (latency === undefined) return { text: 'Connexion…', color: 'text-yellow-600' };
+    return { text: 'Connecté', color: 'text-green-600' };
   };
 
   const status = getConnectionStatus();
-  const StatusIcon = status.icon;
 
   if (compact) {
     return (
       <div className="flex items-center space-x-2">
-        <StatusIcon className={`h-4 w-4 ${status.color}`} />
+        <span className={`text-xs font-medium ${status.color}`}>{status.text}</span>
         {connected && latency !== undefined && (
           <Badge variant={getLatencyBadgeVariant(latency)} className="text-xs">
             {Math.round(latency)}ms
@@ -65,7 +63,6 @@ export default function LatencyDisplay({ connected, latency, compact = false }: 
     <Card className="p-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <StatusIcon className={`h-5 w-5 ${status.color}`} />
           <span className={`font-medium ${status.color}`}>
             {status.text}
           </span>

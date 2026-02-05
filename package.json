@@ -1,13 +1,20 @@
 {
   "name": "management-desktop",
   "private": true,
-  "version": "1.1.5",
+  "version": "1.2.1",
+  "description": "Wasla Management Desktop Application",
+  "author": {
+    "name": "STE Dhraiff Services Transport",
+    "email": "info@wasla.tn"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder --win --x64",
+    "build": "tsc && vite build && electron-builder",
+    "build:publish": "tsc && vite build && electron-builder --publish always --win --linux",
     "build:linux": "tsc && vite build && electron-builder --linux",
-    "build:linux-only": "electron-builder --linux",
+    "build:win": "tsc && vite build && electron-builder --win",
+    "build:mac": "tsc && vite build && electron-builder --mac",
     "build:windows": "tsc && vite build && electron-builder --win --x64",
     "build:windows-only": "electron-builder --win --x64",
     "build:all": "tsc && vite build && electron-builder --win --x64 --linux",

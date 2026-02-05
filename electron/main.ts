@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, dialog } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage, dialog, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -149,36 +149,139 @@ app.whenReady().then(async () => {
     }
   }
 
-  // Auto-update: GitHub provider already configured by electron-builder
-  try {
-    autoUpdater.autoDownload = true
-    autoUpdater.checkForUpdatesAndNotify()
+  // Auto-update: Enhanced with better error handling and UI communication
+  setupAutoUpdater()
+})
 
-    autoUpdater.on('update-available', () => {
-      console.log('Update available')
+function setupAutoUpdater() {
+  // Register IPC handler for app version (works in dev and prod)
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion()
+  })
+
+  // Only enable auto-updater in production (not in dev mode)
+  if (VITE_DEV_SERVER_URL) {
+    console.log('Auto-updater disabled in development mode')
+    
+    // Register stub handlers for dev mode
+    ipcMain.handle('check-for-updates', async () => {
+      return { success: false, error: 'Auto-update non disponible en mode développement' }
     })
-    autoUpdater.on('update-not-available', () => {
-      console.log('No update available')
+    
+    ipcMain.handle('download-update', async () => {
+      return { success: false, error: 'Auto-update non disponible en mode développement' }
     })
-    autoUpdater.on('error', (err: unknown) => {
-      console.error('AutoUpdater error:', err)
+    
+    ipcMain.handle('install-update', async () => {
+      return { success: false, error: 'Auto-update non disponible en mode développement' }
     })
-    autoUpdater.on('download-progress', (p: { percent: number }) => {
-      console.log(`Download progress: ${Math.round(p.percent)}%`)
-    })
-    autoUpdater.on('update-downloaded', async () => {
-      const res = await dialog.showMessageBox({
-        type: 'question',
-        buttons: ['Redémarrer maintenant', 'Plus tard'],
-        defaultId: 0,
-        cancelId: 1,
-        message: 'Une mise à jour a été téléchargée. Redémarrer pour appliquer ?'
+    
+    return
+  }
+
+  try {
+    // Configure auto-updater for automatic updates
+    autoUpdater.autoDownload = true // Automatically download updates
+    autoUpdater.autoInstallOnAppQuit = true // Auto-install on quit if update is ready
+    
+    // Set update check interval (check every 4 hours)
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch(err => {
+        console.error('Error checking for updates:', err)
       })
-      if (res.response === 0) {
-        autoUpdater.quitAndInstall()
+    }, 4 * 60 * 60 * 1000) // 4 hours
+
+    // Check for updates on startup (with delay to not block app startup)
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch(err => {
+        console.error('Error checking for updates on startup:', err)
+      })
+    }, 2000) // Wait 2 seconds after app start
+
+    // Update available - automatically downloading
+    autoUpdater.on('update-available', (info) => {
+      console.log('Update available:', info.version)
+      console.log('Downloading update automatically...')
+      win?.webContents.send('update-available', {
+        version: info.version,
+        releaseDate: info.releaseDate,
+        releaseNotes: info.releaseNotes
+      })
+    })
+
+    // Update not available
+    autoUpdater.on('update-not-available', (info) => {
+      console.log('No update available. Current version:', info.version)
+      win?.webContents.send('update-not-available', {
+        version: info.version
+      })
+    })
+
+    // Update error
+    autoUpdater.on('error', (err: Error) => {
+      console.error('AutoUpdater error:', err)
+      win?.webContents.send('update-error', {
+        message: err.message
+      })
+    })
+
+    // Download progress
+    autoUpdater.on('download-progress', (progress) => {
+      console.log(`Download progress: ${Math.round(progress.percent)}%`)
+      win?.webContents.send('update-download-progress', {
+        percent: Math.round(progress.percent),
+        transferred: progress.transferred,
+        total: progress.total
+      })
+    })
+
+    // Update downloaded - automatically install without user prompt
+    autoUpdater.on('update-downloaded', async (info) => {
+      console.log('Update downloaded:', info.version)
+      console.log('Installing update automatically...')
+      win?.webContents.send('update-downloaded', {
+        version: info.version
+      })
+      
+      // Automatically quit and install without asking user
+      // Delay a bit to ensure UI is updated
+      setTimeout(() => {
+        autoUpdater.quitAndInstall(false, true) // isSilent=false, isForceRunAfter=true
+      }, 2000)
+    })
+
+    // IPC handlers for app version check
+    ipcMain.handle('check-for-updates', async () => {
+      try {
+        const result = await autoUpdater.checkForUpdates()
+        return { success: true, updateInfo: result?.updateInfo }
+      } catch (error) {
+        const err = error as Error
+        return { success: false, error: err.message }
       }
     })
+
+    ipcMain.handle('download-update', async () => {
+      try {
+        autoUpdater.downloadUpdate()
+        return { success: true }
+      } catch (error) {
+        const err = error as Error
+        return { success: false, error: err.message }
+      }
+    })
+
+    ipcMain.handle('install-update', async () => {
+      try {
+        autoUpdater.quitAndInstall(false, true)
+        return { success: true }
+      } catch (error) {
+        const err = error as Error
+        return { success: false, error: err.message }
+      }
+    })
+
   } catch (e) {
     console.error('Failed to init autoUpdater', e)
   }
-})
+}

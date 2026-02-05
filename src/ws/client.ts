@@ -192,7 +192,7 @@ export function connectStatistics(handlers: WSHandlers = {}): WSClient {
     ws = new WebSocket(url);
     
     ws.onopen = () => {
-      console.log('✅ Statistics WebSocket connected');
+      console.log('Statistics WebSocket connected');
       retries = 0;
       connected = true;
       handlers.onOpen?.();

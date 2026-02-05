@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef } from 'react'
 import { listStaff, createStaff, updateStaff, deleteStaff, listVehicles, createVehicle, updateVehicle, deleteVehicle, listAuthorizedStations, addAuthorizedStation, deleteAuthorizedStation } from '@/api/client'
 import EnhancedStatistics from './EnhancedStatistics'
 import QueueManagement from './QueueManagement'
+import UpdateStatus from './UpdateStatus'
 import { Modal } from './ui/modal'
+import Layout from './Layout'
 
 function StaffView() {
   const [staff, setStaff] = useState<any[]>([])
@@ -53,10 +55,10 @@ function StaffView() {
       
       if (editingStaff) {
         await updateStaff(editingStaff.id, formData)
-        showNotification('✅ Personnel modifié avec succès', 'success')
+        showNotification('Personnel modifié avec succès', 'success')
       } else {
         await createStaff(formData)
-        showNotification('✅ Personnel créé avec succès', 'success')
+        showNotification('Personnel créé avec succès', 'success')
       }
       setShowForm(false)
       setEditingStaff(null)
@@ -64,7 +66,7 @@ function StaffView() {
     } catch (error) {
       console.error('Failed to save staff:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur sauvegarde personnel: ${errorMsg}`, 'error')
+      showNotification(`Erreur sauvegarde personnel: ${errorMsg}`, 'error')
     }
   }
 
@@ -84,11 +86,11 @@ function StaffView() {
     try {
       await deleteStaff(id)
       loadStaff()
-      showNotification('✅ Personnel supprimé avec succès', 'success')
+      showNotification('Personnel supprimé avec succès', 'success')
     } catch (error) {
       console.error('Failed to delete staff:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur suppression personnel: ${errorMsg}`, 'error')
+      showNotification(`Erreur suppression personnel: ${errorMsg}`, 'error')
     }
   }
 
@@ -97,13 +99,14 @@ function StaffView() {
       {/* Notification Toast */}
       {notification && (
         <div 
-          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 max-w-md ${
-            notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-xl transform transition-all duration-300 max-w-md border ${
+            notification.type === 'success' 
+              ? 'bg-green-50 text-green-800 border-green-200' 
+              : 'bg-red-50 text-red-800 border-red-200'
           }`}
           style={{ animation: 'slideIn 0.3s ease-out' }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-lg flex-shrink-0">{notification.type === 'success' ? '✅' : '❌'}</span>
             <span className="font-medium break-words">{notification.message}</span>
           </div>
         </div>
@@ -122,59 +125,80 @@ function StaffView() {
         }
       `}</style>
 
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-500">Gérer le personnel (CRUD)</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Gestion du Personnel</h2>
+          <p className="text-sm text-muted-foreground mt-1">Créez, modifiez et gérez les membres du personnel</p>
+        </div>
         <button 
-          className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-md hover:shadow-lg"
           onClick={() => setShowForm(true)}
         >
-          Ajouter Personnel
+          + Ajouter Personnel
         </button>
       </div>
 
       {showForm && (
-        <div className="mb-4 p-4 border rounded">
-          <h3 className="font-medium mb-3">{editingStaff ? 'Modifier Personnel' : 'Ajouter Personnel'}</h3>
-          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              ref={firstNameRef}
-              placeholder="Prénom"
-              className="px-2 py-1 border rounded"
-              required
-            />
-            <input
-              type="text"
-              ref={lastNameRef}
-              placeholder="Nom"
-              className="px-2 py-1 border rounded"
-              required
-            />
-            <input
-              type="text"
-              ref={cinRef}
-              placeholder="CIN (8 chiffres)"
-              className="px-2 py-1 border rounded"
-              maxLength={8}
-              required
-            />
-            <input
-              type="text"
-              ref={phoneNumberRef}
-              placeholder="Numéro de Téléphone"
-              className="px-2 py-1 border rounded"
-              required
-            />
-            <select
-              ref={roleRef}
-              className="px-2 py-1 border rounded"
-              defaultValue="WORKER"
-            >
-              <option value="WORKER">Employé</option>
-              <option value="SUPERVISOR">Superviseur</option>
-            </select>
-            <div className="flex gap-2">
-              <button type="submit" className="px-3 py-1 bg-green-500 text-white rounded text-sm">
+        <div className="mb-6 p-6 border-2 border-border rounded-lg bg-card shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">{editingStaff ? 'Modifier Personnel' : 'Ajouter Personnel'}</h3>
+          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Prénom</label>
+              <input
+                type="text"
+                ref={firstNameRef}
+                placeholder="Prénom"
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Nom</label>
+              <input
+                type="text"
+                ref={lastNameRef}
+                placeholder="Nom"
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">CIN</label>
+              <input
+                type="text"
+                ref={cinRef}
+                placeholder="CIN (8 chiffres)"
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                maxLength={8}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Téléphone</label>
+              <input
+                type="text"
+                ref={phoneNumberRef}
+                placeholder="Numéro de Téléphone"
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Rôle</label>
+              <select
+                ref={roleRef}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                defaultValue="WORKER"
+              >
+                <option value="WORKER">Employé</option>
+                <option value="SUPERVISOR">Superviseur</option>
+              </select>
+            </div>
+            <div className="flex items-end gap-2">
+              <button 
+                type="submit" 
+                className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
                 {editingStaff ? 'Mettre à jour' : 'Créer'}
               </button>
               <button 
@@ -189,54 +213,80 @@ function StaffView() {
                   if (phoneNumberRef.current) phoneNumberRef.current.value = ''
                   if (roleRef.current) roleRef.current.value = 'WORKER'
                 }}
-                className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
               >
-                Cancel
+                Annuler
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {loading && <div className="text-sm">Loading staff...</div>}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Chargement du personnel...</div>
+        </div>
+      )}
+      {!loading && staff.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border rounded-lg">
+          <p className="text-muted-foreground">Aucun membre du personnel trouvé</p>
+        </div>
+      )}
       {!loading && staff.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto border border-border rounded-lg shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 border-b border-border">
               <tr>
-                <th className="text-left p-2 border">Name</th>
-                <th className="text-left p-2 border">CIN</th>
-                <th className="text-left p-2 border">Phone</th>
-                <th className="text-left p-2 border">Role</th>
-                <th className="text-left p-2 border">Status</th>
-                <th className="text-left p-2 border">Actions</th>
+                <th className="text-left p-4 font-semibold text-foreground">Nom</th>
+                <th className="text-left p-4 font-semibold text-foreground">CIN</th>
+                <th className="text-left p-4 font-semibold text-foreground">Téléphone</th>
+                <th className="text-left p-4 font-semibold text-foreground">Rôle</th>
+                <th className="text-left p-4 font-semibold text-foreground">Statut</th>
+                <th className="text-left p-4 font-semibold text-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {staff.map((s) => (
-                <tr key={s.id}>
-                  <td className="p-2 border">{s.firstName} {s.lastName}</td>
-                  <td className="p-2 border">{s.cin}</td>
-                  <td className="p-2 border">{s.phoneNumber}</td>
-                  <td className="p-2 border">{s.role}</td>
-                  <td className="p-2 border">
-                    <span className={`px-2 py-1 rounded text-xs ${s.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {s.isActive ? 'Active' : 'Inactive'}
+              {staff.map((s, index) => (
+                <tr 
+                  key={s.id}
+                  className={`border-b border-border hover:bg-muted/30 transition-colors ${
+                    index % 2 === 0 ? 'bg-background' : 'bg-muted/10'
+                  }`}
+                >
+                  <td className="p-4 font-medium text-foreground">{s.firstName} {s.lastName}</td>
+                  <td className="p-4 text-muted-foreground">{s.cin}</td>
+                  <td className="p-4 text-muted-foreground">{s.phoneNumber}</td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      s.role === 'SUPERVISOR' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {s.role === 'SUPERVISOR' ? 'Superviseur' : 'Employé'}
                     </span>
                   </td>
-                  <td className="p-2 border">
-                    <div className="flex gap-1">
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      s.isActive 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {s.isActive ? 'Actif' : 'Inactif'}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex gap-2">
                       <button 
                         onClick={() => handleEdit(s)}
-                        className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
+                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 transition-colors"
                       >
-                        Edit
+                        Modifier
                       </button>
                       <button 
                         onClick={() => handleDelete(s.id)}
-                        className="px-2 py-1 bg-red-500 text-white rounded text-xs"
+                        className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-xs font-medium hover:bg-destructive/90 transition-colors"
                       >
-                        Delete
+                        Supprimer
                       </button>
                     </div>
                   </td>
@@ -391,14 +441,14 @@ function VehiclesView() {
         }
       }
       
-      showNotification(editingVehicle ? '✅ Véhicule modifié avec succès' : '✅ Véhicule créé avec succès', 'success')
+      showNotification(editingVehicle ? 'Véhicule modifié avec succès' : 'Véhicule créé avec succès', 'success')
       setShowForm(false)
       setEditingVehicle(null)
       loadVehicles()
     } catch (error) {
       console.error('Failed to save vehicle:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur sauvegarde véhicule: ${errorMsg}`, 'error')
+      showNotification(`Erreur sauvegarde véhicule: ${errorMsg}`, 'error')
     }
   }
 
@@ -436,11 +486,11 @@ function VehiclesView() {
       const result = await deleteVehicle(id)
       console.log('Delete result:', result)
       loadVehicles()
-      showNotification('✅ Véhicule supprimé avec succès', 'success')
+      showNotification('Véhicule supprimé avec succès', 'success')
     } catch (error) {
       console.error('Failed to delete vehicle:', error)
       const errorMsg = error instanceof Error ? error.message : String(error)
-      showNotification(`❌ Erreur suppression véhicule: ${errorMsg}`, 'error')
+      showNotification(`Erreur suppression véhicule: ${errorMsg}`, 'error')
     }
   }
 
@@ -455,7 +505,6 @@ function VehiclesView() {
           style={{ animation: 'slideIn 0.3s ease-out' }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-lg flex-shrink-0">{notification.type === 'success' ? '✅' : '❌'}</span>
             <span className="font-medium break-words">{notification.message}</span>
           </div>
         </div>
@@ -806,14 +855,29 @@ type Props = { onLogout: () => void };
 export default function SupervisorMain({ onLogout }: Props) {
   const [activeTab, setActiveTab] = useState<'statistics' | 'queue' | 'staff' | 'vehicles'>('queue')
   
-  // Get user role from localStorage
+  // Get user role and info from localStorage
   const userRole = typeof window !== 'undefined' ? (localStorage.getItem('userRole') || 'WORKER') : 'WORKER'
   const isSupervisor = userRole === 'SUPERVISOR'
   
-  // Workers can see queue and vehicles, supervisors see all
+  // Get staff info for display
+  const [userName, setUserName] = useState<string>('')
+  
+  useEffect(() => {
+    try {
+      const staffInfo = localStorage.getItem('staffInfo')
+      if (staffInfo) {
+        const parsed = JSON.parse(staffInfo)
+        setUserName(`${parsed.firstName} ${parsed.lastName}`)
+      }
+    } catch (e) {
+      console.error('Failed to parse staff info:', e)
+    }
+  }, [])
+  
+  // Workers can only see queue and vehicles, supervisors see all
   useEffect(() => {
     if (!isSupervisor) {
-      // Workers default to queue, but can switch to vehicles
+      // Workers can only access queue and vehicles
       if (activeTab !== 'queue' && activeTab !== 'vehicles') {
         setActiveTab('queue')
       }
@@ -821,75 +885,43 @@ export default function SupervisorMain({ onLogout }: Props) {
   }, [isSupervisor, activeTab])
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Wasla Management</h1>
-          <span className={`text-xs px-2 py-1 rounded ${
-            isSupervisor ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-          }`}>
-            {isSupervisor ? 'Superviseur' : 'Employé'}
-          </span>
-        </div>
-        <div className="flex items-center space-x-2">
-          {isSupervisor && (
-          <div className="space-x-2">
-              <button 
-                className={`px-3 py-1 rounded ${activeTab === 'statistics' ? 'bg-blue-500 text-white' : 'border'}`} 
-                onClick={() => setActiveTab('statistics')}
-              >
-                Statistiques
-              </button>
-              <button 
-                className={`px-3 py-1 rounded ${activeTab === 'queue' ? 'bg-blue-500 text-white' : 'border'}`} 
-                onClick={() => setActiveTab('queue')}
-              >
-                Gestion Queue
-              </button>
-              <button 
-                className={`px-3 py-1 rounded ${activeTab === 'staff' ? 'bg-blue-500 text-white' : 'border'}`} 
-                onClick={() => setActiveTab('staff')}
-              >
-                Personnel
-              </button>
-              <button 
-                className={`px-3 py-1 rounded ${activeTab === 'vehicles' ? 'bg-blue-500 text-white' : 'border'}`} 
-                onClick={() => setActiveTab('vehicles')}
-              >
-                Véhicules
-              </button>
+    <Layout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      onLogout={onLogout}
+      isSupervisor={isSupervisor}
+      userName={userName}
+      userRole={userRole}
+    >
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              {activeTab === 'statistics' && 'Statistiques'}
+              {activeTab === 'queue' && 'Gestion de la Queue'}
+              {activeTab === 'staff' && 'Gestion du Personnel'}
+              {activeTab === 'vehicles' && 'Gestion des Véhicules'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {activeTab === 'statistics' && 'Consultez les statistiques et rapports détaillés'}
+              {activeTab === 'queue' && 'Gérez les files d\'attente et les réservations'}
+              {activeTab === 'staff' && 'Gérez les membres du personnel'}
+              {activeTab === 'vehicles' && 'Gérez la flotte de véhicules'}
+            </p>
           </div>
-          )}
-          {!isSupervisor && (
-            <div className="space-x-2">
-              <button 
-                className={`px-3 py-1 rounded ${activeTab === 'queue' ? 'bg-blue-500 text-white' : 'border'}`} 
-                onClick={() => setActiveTab('queue')}
-              >
-                Gestion Queue
-              </button>
-              <button 
-                className={`px-3 py-1 rounded ${activeTab === 'vehicles' ? 'bg-blue-500 text-white' : 'border'}`} 
-                onClick={() => setActiveTab('vehicles')}
-              >
-                Véhicules
-              </button>
-            </div>
-          )}
-          <button 
-            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-            onClick={onLogout}
-          >
-            Déconnexion
-          </button>
+          <UpdateStatus />
+        </div>
+
+        {/* Content */}
+        <div className="mt-6">
+          {activeTab === 'statistics' && isSupervisor && <EnhancedStatistics />}
+          {activeTab === 'queue' && <QueueManagement />}
+          {activeTab === 'staff' && isSupervisor && <StaffView />}
+          {activeTab === 'vehicles' && <VehiclesView />}
         </div>
       </div>
-
-      {activeTab === 'statistics' && isSupervisor && <EnhancedStatistics />}
-      {activeTab === 'queue' && <QueueManagement />}
-      {activeTab === 'staff' && isSupervisor && <StaffView />}
-      {activeTab === 'vehicles' && <VehiclesView />}
-    </div>
+    </Layout>
   )
 }
 
