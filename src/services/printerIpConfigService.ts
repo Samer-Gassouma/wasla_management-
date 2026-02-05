@@ -9,7 +9,7 @@ export interface PrinterIpConfig {
 class PrinterIpConfigService {
   private readonly STORAGE_KEY = 'management-desktop-printer-ip';
   private readonly DEFAULT_CONFIG: PrinterIpConfig = {
-    ip: '192.168.192.168',
+    ip: '192.168.192.12',
     port: 9100
   };
 
