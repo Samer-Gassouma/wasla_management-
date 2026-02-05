@@ -1,0 +1,97 @@
+============================================================
+VIRTUAL PRINTER - Print Job #2
+Time: 05/02/2026 23:33:55
+Client: 127.0.0.1:38794
+Data Size: 469 bytes
+============================================================
+
+--- DECODED OUTPUT ---
+
+[ESC @ - Initialize Printer]
+[ESC t - Set Code Table]
+[ESC a - Alignment: CENTER]
+================================
+
+  STE DHRAIFF SERVICES
+
+     TRANSPORT
+
+================================
+
+
+     BILLET RESERVATION
+
+================================
+
+Destination: JEMMAL
+
+Sieges: 1
+
+--------------------------------
+
+Prix base: 1.80 TND
+
+Frais: 0.15 TND
+
+Total: 1.95 TND
+
+--------------------------------
+
+Date: 05/02/2026
+
+Heure: 23:33
+
+Agent: User Ivan
+
+
+================================
+
+    Merci et bon voyage!
+
+================================
+
+
+
+[ESC a - Alignment: LEFT]
+
+
+
+
+[GS V - Cut Paper]
+
+============================================================
+
+--- RAW DATA (HEX) ---
+
+1b401b74021b61013d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d0a20205354452044
+4852414946462053455256494345530a
+20202020205452414e53504f52540a3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0a
+0a202020202042494c4c455420524553
+4552564154494f4e0a3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d0a44657374696e
+6174696f6e3a204a454d4d414c0a5369
+656765733a20310a2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d0a50726978206261
+73653a20312e383020544e440a467261
+69733a20302e313520544e440a546f74
+616c3a20312e393520544e440a2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d0a4461
+74653a2030352f30322f323032360a48
+657572653a2032333a33330a4167656e
+743a2055736572204976616e0a0a3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d0a20
+2020204d6572636920657420626f6e20
+766f79616765210a3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d0a0a0a1b61000a0a
+0a0a1d5600
+
+============================================================

@@ -1,0 +1,97 @@
+============================================================
+VIRTUAL PRINTER - Print Job #3
+Time: 05/02/2026 23:34:08
+Client: 127.0.0.1:43988
+Data Size: 471 bytes
+============================================================
+
+--- DECODED OUTPUT ---
+
+[ESC @ - Initialize Printer]
+[ESC t - Set Code Table]
+[ESC a - Alignment: CENTER]
+================================
+
+  STE DHRAIFF SERVICES
+
+     TRANSPORT
+
+================================
+
+
+     BILLET RESERVATION
+
+================================
+
+Destination: TEBOULBA
+
+Sieges: 2
+
+--------------------------------
+
+Prix base: 4.80 TND
+
+Frais: 0.30 TND
+
+Total: 5.10 TND
+
+--------------------------------
+
+Date: 05/02/2026
+
+Heure: 23:34
+
+Agent: User Ivan
+
+
+================================
+
+    Merci et bon voyage!
+
+================================
+
+
+
+[ESC a - Alignment: LEFT]
+
+
+
+
+[GS V - Cut Paper]
+
+============================================================
+
+--- RAW DATA (HEX) ---
+
+1b401b74021b61013d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d0a20205354452044
+4852414946462053455256494345530a
+20202020205452414e53504f52540a3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0a
+0a202020202042494c4c455420524553
+4552564154494f4e0a3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d0a44657374696e
+6174696f6e3a205445424f554c42410a
+5369656765733a20320a2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d0a5072697820
+626173653a20342e383020544e440a46
+726169733a20302e333020544e440a54
+6f74616c3a20352e313020544e440a2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d0a
+446174653a2030352f30322f32303236
+0a48657572653a2032333a33340a4167
+656e743a2055736572204976616e0a0a
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+0a202020204d6572636920657420626f
+6e20766f79616765210a3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d0a0a0a1b6100
+0a0a0a0a1d5600
+
+============================================================

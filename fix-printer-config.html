@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Printer Config</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .config {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .value {
+            font-family: monospace;
+            color: #0066cc;
+            font-size: 16px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: none;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖨️ Printer Configuration</h1>
+        
+        <div id="currentConfig" class="config">
+            <div class="label">Current Printer IP:</div>
+            <div class="value" id="currentIp">Loading...</div>
+        </div>
+
+        <div class="config">
+            <div class="label">Should be:</div>
+            <div class="value">localhost (or 127.0.0.1)</div>
+        </div>
+
+        <button onclick="fixConfig()">Fix Printer Config to localhost</button>
+
+        <div id="success" class="success"></div>
+
+        <div class="info">
+            <strong>ℹ️ Info:</strong> The virtual printer runs on <code>localhost:9100</code>. 
+            After clicking the button, reload your Management Desktop app.
+        </div>
+    </div>
+
+    <script>
+        // Display current config
+        function displayCurrentConfig() {
+            try {
+                const stored = localStorage.getItem('management-desktop-printer-ip');
+                if (stored) {
+                    const config = JSON.parse(stored);
+                    document.getElementById('currentIp').textContent = 
+                        `${config.ip}:${config.port}`;
+                } else {
+                    document.getElementById('currentIp').textContent = 'Not configured (will use default)';
+                }
+            } catch (e) {
+                document.getElementById('currentIp').textContent = 'Error reading config';
+            }
+        }
+
+        // Fix the config
+        function fixConfig() {
+            const config = {
+                ip: 'localhost',
+                port: 9100
+            };
+            
+            localStorage.setItem('management-desktop-printer-ip', JSON.stringify(config));
+            
+            document.getElementById('success').textContent = 
+                '✅ Config updated! Printer IP set to localhost:9100. Please reload the Management Desktop app.';
+            document.getElementById('success').style.display = 'block';
+            
+            displayCurrentConfig();
+        }
+
+        // Load on start
+        displayCurrentConfig();
+    </script>
+</body>
+</html>

@@ -233,7 +233,7 @@ export class EmbeddedPrinterService {
     return {
       id: 'printer1',
       name: 'Local Printer',
-      ip: '192.168.192.168',
+      ip: 'localhost',  // Virtual printer on localhost
       port: 9100,
       width: 48,
       timeout: 5000,
@@ -289,93 +289,94 @@ export class EmbeddedPrinterService {
   }
 
   /**
-   * Generate ticket content
+   * Generate ticket content - Simple and direct output
    */
   private generateTicketContent(data: TicketData, type: string): string {
     const lines: string[] = [];
     const now = new Date(data.createdAt);
     const dateStr = now.toLocaleDateString('fr-FR');
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const seatCount = Math.max(1, data.seatNumber || 1);
 
-    // Header
+    // Header - Company name
     lines.push('================================');
     lines.push('  STE DHRAIFF SERVICES');
     lines.push('     TRANSPORT');
     lines.push('================================');
+    lines.push('');
 
-    if (type === 'daypass') {
-      lines.push('');
-      lines.push('   PASS JOURNÉE');
-      lines.push('--------------------------------');
-      lines.push(`Vehicule: ${data.licensePlate}`);
-      if (data.routeName) {
-        lines.push(`Route: ${data.routeName}`);
+    if (type === 'booking') {
+      // Booking ticket (client reservation)
+      const seatCount = Math.max(1, data.seatNumber || 1);
+      lines.push('     BILLET RESERVATION');
+      lines.push('================================');
+      if (data.licensePlate) {
+        lines.push(`Vehicule: ${data.licensePlate}`);
       }
-      lines.push(`Montant: ${data.totalAmount.toFixed(2)} TND`);
-      lines.push(`Date: ${dateStr} ${timeStr}`);
-      lines.push(`Agent: ${data.createdBy}`);
+      lines.push(`Destination: ${data.destinationName || 'N/A'}`);
+      lines.push(`Sieges: ${seatCount}`);
       lines.push('--------------------------------');
-      lines.push('Valide toute la journée!');
-    } else if (type === 'exitpass') {
-      lines.push('');
-      lines.push('   AUTORISATION SORTIE');
+      if (data.basePrice) {
+        const baseTotal = data.basePrice * seatCount;
+        lines.push(`Prix base: ${baseTotal.toFixed(2)} TND`);
+      }
+      if (data.stationFee) {
+        const feeTotal = data.stationFee * seatCount;
+        lines.push(`Frais: ${feeTotal.toFixed(2)} TND`);
+      }
+      lines.push(`Total: ${data.totalAmount.toFixed(2)} TND`);
       lines.push('--------------------------------');
+      lines.push(`Date: ${dateStr}`);
+      lines.push(`Heure: ${timeStr}`);
+      if (data.createdBy) {
+        lines.push(`Agent: ${data.createdBy}`);
+      }
+    } else if (type === 'daypass') {
+      // Day pass ticket
+      lines.push('      PASS JOURNEE');
+      lines.push('================================');
       lines.push(`Vehicule: ${data.licensePlate}`);
       if (data.destinationName) {
-        lines.push(`Destination: ${data.destinationName}`);
+        lines.push(`Route: ${data.destinationName}`);
       }
-      
-      // Pricing breakdown
-      if (data.basePrice && data.seatNumber) {
-        if (data.vehicleCapacity && data.seatNumber === data.vehicleCapacity) {
-          // Empty vehicle
-          const serviceFeePerSeat = 0.15;
-          const serviceTotal = serviceFeePerSeat * data.vehicleCapacity;
-          lines.push(`Capacité véhicule: ${data.vehicleCapacity} sièges`);
-          lines.push(`Frais de service: ${serviceTotal.toFixed(2)} TND`);
-        } else {
-          // Vehicle with bookings
+      lines.push('--------------------------------');
+      lines.push(`Montant: ${data.totalAmount.toFixed(2)} TND`);
+      lines.push('--------------------------------');
+      lines.push(`Date: ${dateStr}`);
+      lines.push(`Heure: ${timeStr}`);
+      if (data.createdBy) {
+        lines.push(`Agent: ${data.createdBy}`);
+      }
+      lines.push('--------------------------------');
+      lines.push('   Valide toute la journee');
+    } else if (type === 'exitpass') {
+      // Exit pass (authorization de sortie)
+      lines.push('  AUTORISATION DE SORTIE');
+      lines.push('================================');
+      lines.push(`Vehicule: ${data.licensePlate}`);
+      lines.push(`Destination: ${data.destinationName || 'N/A'}`);
+      lines.push('--------------------------------');
+      if (data.seatNumber && data.seatNumber > 0) {
+        lines.push(`Sieges: ${data.seatNumber}`);
+        if (data.basePrice) {
           const baseTotal = data.basePrice * data.seatNumber;
-          lines.push(`Sièges réservés: ${data.seatNumber}`);
-          lines.push(`Prix de base: ${baseTotal.toFixed(2)} TND`);
+          lines.push(`Prix: ${baseTotal.toFixed(2)} TND`);
         }
       }
-      
-      lines.push(`Montant Total: ${data.totalAmount.toFixed(2)} TND`);
-      lines.push(`Date: ${dateStr} ${timeStr}`);
-      lines.push(`Agent: ${data.createdBy}`);
+      lines.push(`Total: ${data.totalAmount.toFixed(2)} TND`);
       lines.push('--------------------------------');
-      lines.push('Sortie autorisée!');
-    } else if (type === 'booking') {
-      const stationFeePerSeat = typeof data.stationFee === 'number' ? data.stationFee : 0.15;
-      const basePricePerSeat = typeof data.basePrice === 'number' ? data.basePrice : 0;
-      const baseTotal = basePricePerSeat * seatCount;
-      const stationFeeTotal = stationFeePerSeat * seatCount;
-      const totalAmount = data.totalAmount || (baseTotal + stationFeeTotal);
-
-      lines.push('');
-      lines.push('      BILLET CLIENT');
-      lines.push('--------------------------------');
-      if (data.destinationName) {
-        lines.push(`Destination: ${data.destinationName}`);
+      lines.push(`Date: ${dateStr}`);
+      lines.push(`Heure: ${timeStr}`);
+      if (data.createdBy) {
+        lines.push(`Agent: ${data.createdBy}`);
       }
-      lines.push(`Nombre de sièges: ${seatCount}`);
-      lines.push(`Prix par siège: ${basePricePerSeat.toFixed(2)} TND`);
-      lines.push(`Total billets: ${baseTotal.toFixed(2)} TND`);
-      lines.push(`Frais station (${stationFeePerSeat.toFixed(3)} TND x ${seatCount})`);
-      lines.push(`Total frais: ${stationFeeTotal.toFixed(3)} TND`);
       lines.push('--------------------------------');
-      lines.push(`Montant TTC: ${totalAmount.toFixed(3)} TND`);
-      lines.push(`Date: ${dateStr} ${timeStr}`);
-      lines.push(`Agent: ${data.createdBy}`);
-      lines.push('Bon voyage !');
+      lines.push('      Sortie autorisee');
     }
 
-    if (data.staffFirstName && data.staffLastName) {
-      lines.push(`Agent: ${data.staffFirstName} ${data.staffLastName}`);
-    }
-
+    lines.push('');
+    lines.push('================================');
+    lines.push('    Merci et bon voyage!');
+    lines.push('================================');
     lines.push('');
     lines.push('');
     lines.push('');
@@ -467,17 +468,27 @@ export class EmbeddedPrinterService {
   }
 
   /**
-   * Convert text to ESC/POS commands
+   * Convert text to ESC/POS commands - Simple direct output
    */
   private convertToESCPOS(content: string): Buffer {
     // ESC @ - Initialize printer
     let data = Buffer.from([0x1B, 0x40]);
 
-    // Add content
-    data = Buffer.concat([data, Buffer.from(content, 'utf8')]);
+    // Set character set to French (Code Page 850)
+    data = Buffer.concat([data, Buffer.from([0x1B, 0x74, 0x02])]);
+
+    // Center alignment
+    data = Buffer.concat([data, Buffer.from([0x1B, 0x61, 0x01])]);
+
+    // Add content with proper encoding
+    const contentBuffer = Buffer.from(content, 'utf8');
+    data = Buffer.concat([data, contentBuffer]);
+
+    // Reset alignment
+    data = Buffer.concat([data, Buffer.from([0x1B, 0x61, 0x00])]);
 
     // Add line feeds
-    data = Buffer.concat([data, Buffer.from([0x0A, 0x0A, 0x0A])]);
+    data = Buffer.concat([data, Buffer.from([0x0A, 0x0A, 0x0A, 0x0A])]);
 
     // Cut paper - GS V 0
     data = Buffer.concat([data, Buffer.from([0x1D, 0x56, 0x00])]);
@@ -486,41 +497,75 @@ export class EmbeddedPrinterService {
   }
 
   /**
-   * Send data to printer
+   * Send data to printer - Direct output
    */
   private async sendToPrinter(ip: string, port: number, data: Buffer): Promise<void> {
     return new Promise((resolve, reject) => {
       const socket = new net.Socket();
       let isResolved = false;
+      let dataWritten = false;
 
+      // Connection timeout
       socket.setTimeout(5000);
 
       socket.on('connect', () => {
-        socket.write(data);
+        console.log(`[Printer Service] Connected to printer at ${ip}:${port}`);
+        // Write data to printer immediately
+        socket.write(data, (err) => {
+          if (err && !isResolved) {
+            console.error('[Printer Service] Write error:', err);
+            isResolved = true;
+            socket.destroy();
+            reject(err);
+          } else {
+            dataWritten = true;
+            console.log('[Printer Service] Data sent to printer successfully');
+            // Give printer time to process, then close
+            setTimeout(() => {
+              if (!isResolved) {
+                isResolved = true;
+                socket.destroy();
+                resolve();
+              }
+            }, 500);
+          }
+        });
       });
 
       socket.on('error', (err) => {
+        console.error('[Printer Service] Socket error:', err);
         if (!isResolved) {
           isResolved = true;
-          reject(err);
+          reject(new Error(`Cannot connect to printer at ${ip}:${port} - ${err.message}`));
         }
       });
 
       socket.on('timeout', () => {
-        socket.destroy();
+        console.warn('[Printer Service] Socket timeout');
         if (!isResolved) {
           isResolved = true;
-          reject(new Error('Printer connection timeout'));
+          socket.destroy();
+          if (dataWritten) {
+            resolve(); // Data was sent, consider it success
+          } else {
+            reject(new Error(`Printer connection timeout at ${ip}:${port}`));
+          }
         }
       });
 
       socket.on('close', () => {
         if (!isResolved) {
           isResolved = true;
-          resolve();
+          if (dataWritten) {
+            resolve(); // Data was sent successfully
+          } else {
+            reject(new Error('Connection closed before data could be sent'));
+          }
         }
       });
 
+      // Connect to printer
+      console.log(`[Printer Service] Connecting to printer at ${ip}:${port}`);
       socket.connect(port, ip);
     });
   }

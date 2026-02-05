@@ -1,0 +1,99 @@
+============================================================
+VIRTUAL PRINTER - Print Job #5
+Time: 05/02/2026 23:35:03
+Client: 127.0.0.1:34700
+Data Size: 509 bytes
+============================================================
+
+--- DECODED OUTPUT ---
+
+[ESC @ - Initialize Printer]
+[ESC t - Set Code Table]
+[ESC a - Alignment: CENTER]
+================================
+
+  STE DHRAIFF SERVICES
+
+     TRANSPORT
+
+================================
+
+
+      PASS JOURNEE
+
+================================
+
+Vehicule: 123 TU 456
+
+Route: Toutes Destinations
+
+--------------------------------
+
+Montant: 2.00 TND
+
+--------------------------------
+
+Date: 06/02/2026
+
+Heure: 00:35
+
+Agent: Agent Test
+
+--------------------------------
+
+   Valide toute la journee
+
+
+================================
+
+    Merci et bon voyage!
+
+================================
+
+
+
+[ESC a - Alignment: LEFT]
+
+
+
+
+[GS V - Cut Paper]
+
+============================================================
+
+--- RAW DATA (HEX) ---
+
+1b401b74021b61013d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d0a20205354452044
+4852414946462053455256494345530a
+20202020205452414e53504f52540a3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0a
+0a20202020202050415353204a4f5552
+4e45450a3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d0a5665686963756c653a2031
+3233205455203435360a526f7574653a
+20546f757465732044657374696e6174
+696f6e730a2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d0a4d6f6e74616e743a2032
+2e303020544e440a2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d0a446174653a2030
+362f30322f323032360a48657572653a
+2030303a33350a4167656e743a204167
+656e7420546573740a2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d0a20202056616c
+69646520746f757465206c61206a6f75
+726e65650a0a3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d0a202020204d65726369
+20657420626f6e20766f79616765210a
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+0a0a0a1b61000a0a0a0a1d5600
+
+============================================================

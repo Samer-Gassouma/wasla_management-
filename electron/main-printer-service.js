@@ -131,7 +131,23 @@ export class EmbeddedPrinterService {
       return;
     }
 
-    // Print endpoints
+    // Print endpoints - all types supported
+    if (url.pathname === '/api/printer/print/booking' && req.method === 'POST') {
+      try {
+        const body = await this.readBody(req);
+        const ticketData = JSON.parse(body);
+        await this.printTicket(ticketData, 'booking');
+        res.writeHead(200);
+        res.end(JSON.stringify({ message: 'booking ticket printed successfully' }));
+        return;
+      } catch (error) {
+        console.error('[Printer Service] Print error:', error);
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: error.message || 'Failed to print ticket' }));
+        return;
+      }
+    }
+
     if (url.pathname === '/api/printer/print/daypass' && req.method === 'POST') {
       try {
         const body = await this.readBody(req);
@@ -193,7 +209,7 @@ export class EmbeddedPrinterService {
     return {
       id: 'printer1',
       name: 'Local Printer',
-      ip: '192.168.192.168',
+      ip: 'localhost',  // Virtual printer on localhost
       port: 9100,
       width: 48,
       timeout: 5000,
@@ -251,7 +267,7 @@ export class EmbeddedPrinterService {
   }
 
   /**
-   * Generate ticket content
+   * Generate ticket content - Simple and direct output
    */
   generateTicketContent(data, type) {
     const lines = [];
@@ -259,52 +275,85 @@ export class EmbeddedPrinterService {
     const dateStr = now.toLocaleDateString('fr-FR');
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-    // Header
+    // Header - Company name
     lines.push('================================');
     lines.push('  STE DHRAIFF SERVICES');
     lines.push('     TRANSPORT');
     lines.push('================================');
+    lines.push('');
 
-    if (type === 'daypass') {
-      lines.push('');
-      lines.push('   PASS JOURNÉE');
-      lines.push('--------------------------------');
-      lines.push(`Vehicule: ${data.licensePlate}`);
-      if (data.routeName) {
-        lines.push(`Route: ${data.routeName}`);
+    if (type === 'booking') {
+      // Booking ticket (client reservation)
+      lines.push('     BILLET RESERVATION');
+      lines.push('================================');
+      if (data.licensePlate) {
+        lines.push(`Vehicule: ${data.licensePlate}`);
       }
-      lines.push(`Montant: ${data.totalAmount.toFixed(2)} TND`);
-      lines.push(`Date: ${dateStr} ${timeStr}`);
-      lines.push(`Agent: ${data.createdBy}`);
+      lines.push(`Destination: ${data.destinationName}`);
+      lines.push(`Sieges: ${data.seatNumber}`);
       lines.push('--------------------------------');
-      lines.push('Valide toute la journée!');
-    } else if (type === 'exitpass') {
-      lines.push('');
-      lines.push('   AUTORISATION SORTIE');
+      if (data.basePrice) {
+        const baseTotal = data.basePrice * data.seatNumber;
+        lines.push(`Prix base: ${baseTotal.toFixed(2)} TND`);
+      }
+      if (data.stationFee) {
+        const feeTotal = data.stationFee * data.seatNumber;
+        lines.push(`Frais: ${feeTotal.toFixed(2)} TND`);
+      }
+      lines.push(`Total: ${data.totalAmount.toFixed(2)} TND`);
       lines.push('--------------------------------');
+      lines.push(`Date: ${dateStr}`);
+      lines.push(`Heure: ${timeStr}`);
+      if (data.createdBy) {
+        lines.push(`Agent: ${data.createdBy}`);
+      }
+    } else if (type === 'daypass') {
+      // Day pass ticket
+      lines.push('      PASS JOURNEE');
+      lines.push('================================');
       lines.push(`Vehicule: ${data.licensePlate}`);
       if (data.destinationName) {
-        lines.push(`Destination: ${data.destinationName}`);
+        lines.push(`Route: ${data.destinationName}`);
       }
-      
-      // Pricing breakdown - no service fees, just show the total
-      if (data.basePrice && data.seatNumber) {
-        const baseTotal = data.basePrice * data.seatNumber;
-        lines.push(`Sièges: ${data.seatNumber}`);
-        lines.push(`Prix: ${baseTotal.toFixed(2)} TND`);
-      }
-      
-      lines.push(`Total: ${data.totalAmount.toFixed(2)} TND`);
-      lines.push(`Date: ${dateStr} ${timeStr}`);
-      lines.push(`Agent: ${data.createdBy}`);
       lines.push('--------------------------------');
-      lines.push('🚪 Sortie autorisée!');
+      lines.push(`Montant: ${data.totalAmount.toFixed(2)} TND`);
+      lines.push('--------------------------------');
+      lines.push(`Date: ${dateStr}`);
+      lines.push(`Heure: ${timeStr}`);
+      if (data.createdBy) {
+        lines.push(`Agent: ${data.createdBy}`);
+      }
+      lines.push('--------------------------------');
+      lines.push('   Valide toute la journee');
+    } else if (type === 'exitpass') {
+      // Exit pass (authorization de sortie)
+      lines.push('  AUTORISATION DE SORTIE');
+      lines.push('================================');
+      lines.push(`Vehicule: ${data.licensePlate}`);
+      lines.push(`Destination: ${data.destinationName}`);
+      lines.push('--------------------------------');
+      if (data.seatNumber && data.seatNumber > 0) {
+        lines.push(`Sieges: ${data.seatNumber}`);
+        if (data.basePrice) {
+          const baseTotal = data.basePrice * data.seatNumber;
+          lines.push(`Prix: ${baseTotal.toFixed(2)} TND`);
+        }
+      }
+      lines.push(`Total: ${data.totalAmount.toFixed(2)} TND`);
+      lines.push('--------------------------------');
+      lines.push(`Date: ${dateStr}`);
+      lines.push(`Heure: ${timeStr}`);
+      if (data.createdBy) {
+        lines.push(`Agent: ${data.createdBy}`);
+      }
+      lines.push('--------------------------------');
+      lines.push('      Sortie autorisee');
     }
 
-    if (data.staffFirstName && data.staffLastName) {
-      lines.push(`Agent: ${data.staffFirstName} ${data.staffLastName}`);
-    }
-
+    lines.push('');
+    lines.push('================================');
+    lines.push('    Merci et bon voyage!');
+    lines.push('================================');
     lines.push('');
     lines.push('');
     lines.push('');
@@ -313,17 +362,27 @@ export class EmbeddedPrinterService {
   }
 
   /**
-   * Convert text to ESC/POS commands
+   * Convert text to ESC/POS commands - Simple direct output
    */
   convertToESCPOS(content) {
     // ESC @ - Initialize printer
     let data = Buffer.from([0x1B, 0x40]);
 
-    // Add content
-    data = Buffer.concat([data, Buffer.from(content, 'utf8')]);
+    // Set character set to French (Code Page 850)
+    data = Buffer.concat([data, Buffer.from([0x1B, 0x74, 0x02])]);
+
+    // Center alignment
+    data = Buffer.concat([data, Buffer.from([0x1B, 0x61, 0x01])]);
+
+    // Add content with proper encoding
+    const contentBuffer = Buffer.from(content, 'utf8');
+    data = Buffer.concat([data, contentBuffer]);
+
+    // Reset alignment
+    data = Buffer.concat([data, Buffer.from([0x1B, 0x61, 0x00])]);
 
     // Add line feeds
-    data = Buffer.concat([data, Buffer.from([0x0A, 0x0A, 0x0A])]);
+    data = Buffer.concat([data, Buffer.from([0x0A, 0x0A, 0x0A, 0x0A])]);
 
     // Cut paper - GS V 0
     data = Buffer.concat([data, Buffer.from([0x1D, 0x56, 0x00])]);
@@ -332,51 +391,81 @@ export class EmbeddedPrinterService {
   }
 
   /**
-   * Send data to printer
+   * Send data to printer - Direct output
    */
   async sendToPrinter(ip, port, data) {
     return new Promise((resolve, reject) => {
       const socket = new net.Socket();
       let isResolved = false;
+      let dataWritten = false;
 
+      // Connection timeout
       socket.setTimeout(5000);
 
       socket.on('connect', () => {
-        // Write data to printer
+        console.log(`[Printer Service] Connected to printer at ${ip}:${port}`);
+        console.log(`[Printer Service] Sending ${data.length} bytes...`);
+        
+        // Write data to printer immediately
         socket.write(data, (err) => {
           if (err && !isResolved) {
+            console.error('[Printer Service] Write error:', err);
             isResolved = true;
             socket.destroy();
             reject(err);
+          } else {
+            dataWritten = true;
+            console.log('[Printer Service] Data sent to printer successfully');
+            
+            // Properly end the socket after writing
+            socket.end();
+            
+            // Give printer time to process, then resolve
+            setTimeout(() => {
+              if (!isResolved) {
+                isResolved = true;
+                resolve();
+              }
+            }, 200);
           }
         });
-        
-        // Give it time to send, then close
-        socket.setTimeout(500); // Short timeout after write
       });
 
       socket.on('error', (err) => {
+        console.error('[Printer Service] Socket error:', err);
         if (!isResolved) {
           isResolved = true;
-          reject(err);
+          reject(new Error(`Cannot connect to printer at ${ip}:${port} - ${err.message}`));
         }
       });
 
       socket.on('timeout', () => {
+        console.warn('[Printer Service] Socket timeout');
         if (!isResolved) {
           isResolved = true;
           socket.destroy();
-          resolve(); // Consider timeout as success (data might have been sent)
+          if (dataWritten) {
+            resolve(); // Data was sent, consider it success
+          } else {
+            reject(new Error(`Printer connection timeout at ${ip}:${port}`));
+          }
         }
       });
 
       socket.on('close', () => {
+        console.log('[Printer Service] Socket closed');
         if (!isResolved) {
           isResolved = true;
-          resolve();
+          if (dataWritten) {
+            resolve(); // Data was sent successfully
+          } else {
+            reject(new Error('Connection closed before data could be sent'));
+          }
         }
       });
 
+      // Connect to printer
+      console.log(`[Printer Service] Connecting to printer at ${ip}:${port}`);
       socket.connect(port, ip);
     });
   }

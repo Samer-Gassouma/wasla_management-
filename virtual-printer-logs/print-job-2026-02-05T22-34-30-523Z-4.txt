@@ -1,0 +1,99 @@
+============================================================
+VIRTUAL PRINTER - Print Job #4
+Time: 05/02/2026 23:34:30
+Client: 127.0.0.1:56416
+Data Size: 497 bytes
+============================================================
+
+--- DECODED OUTPUT ---
+
+[ESC @ - Initialize Printer]
+[ESC t - Set Code Table]
+[ESC a - Alignment: CENTER]
+================================
+
+  STE DHRAIFF SERVICES
+
+     TRANSPORT
+
+================================
+
+
+      PASS JOURNEE
+
+================================
+
+Vehicule: 130 TUN 2221
+
+Route: JEMMAL
+
+--------------------------------
+
+Montant: 2.00 TND
+
+--------------------------------
+
+Date: 06/02/2026
+
+Heure: 00:29
+
+Agent: User Ivan
+
+--------------------------------
+
+   Valide toute la journee
+
+
+================================
+
+    Merci et bon voyage!
+
+================================
+
+
+
+[ESC a - Alignment: LEFT]
+
+
+
+
+[GS V - Cut Paper]
+
+============================================================
+
+--- RAW DATA (HEX) ---
+
+1b401b74021b61013d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d0a20205354452044
+4852414946462053455256494345530a
+20202020205452414e53504f52540a3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d0a
+0a20202020202050415353204a4f5552
+4e45450a3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d0a5665686963756c653a2031
+33302054554e20323232310a526f7574
+653a204a454d4d414c0a2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d0a4d6f6e7461
+6e743a20322e303020544e440a2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d0a4461
+74653a2030362f30322f323032360a48
+657572653a2030303a32390a4167656e
+743a2055736572204976616e0a2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+2d2d2d2d2d2d2d2d2d2d2d2d2d0a2020
+2056616c69646520746f757465206c61
+206a6f75726e65650a0a3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d0a202020204d
+6572636920657420626f6e20766f7961
+6765210a3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d
+3d3d3d3d0a0a0a1b61000a0a0a0a1d56
+00
+
+============================================================
